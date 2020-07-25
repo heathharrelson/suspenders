@@ -52,7 +52,6 @@ func main() {
 		fmt.Printf("There are %d pods in the cluster\n", len(pods.Items))
 
 		deployments, err := clientset.AppsV1().Deployments("").List(context.TODO(), metav1.ListOptions{})
-
 		if err != nil {
 			panic(err.Error())
 		}
@@ -60,8 +59,14 @@ func main() {
 		for _, deployment := range deployments.Items {
 			fmt.Printf("Name: %s.%s\n", deployment.Namespace, deployment.Name)
 			fmt.Printf("Created at: %v\n", deployment.CreationTimestamp)
-			fmt.Printf("Spec: %v\n", deployment.Spec)
-			fmt.Printf("Status: %v\n", deployment.Status)
+			fmt.Printf("Desired replicas: %d\n", deployment.Status.Replicas)
+			fmt.Printf("Ready replicas: %d\n", deployment.Status.ReadyReplicas)
+
+			if len(deployment.Status.Conditions) > 0 {
+				condition := deployment.Status.Conditions[0]
+				fmt.Printf("Last status: %v:%v\n", condition.Type, condition.Status)
+				fmt.Printf("Last transition: %v\n", condition.LastTransitionTime)
+			}
 			fmt.Println()
 		}
 
