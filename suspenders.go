@@ -10,6 +10,7 @@ import (
 	"time"
 
 	//"k8s.io/apimachinery/pkg/api/errors"
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -45,12 +46,6 @@ func main() {
 		panic(err.Error())
 	}
 	for {
-		pods, err := clientset.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{})
-		if err != nil {
-			panic(err.Error())
-		}
-		fmt.Printf("There are %d pods in the cluster\n", len(pods.Items))
-
 		deployments, err := clientset.AppsV1().Deployments("").List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			panic(err.Error())
@@ -62,11 +57,9 @@ func main() {
 			fmt.Printf("Desired replicas: %d\n", deployment.Status.Replicas)
 			fmt.Printf("Ready replicas: %d\n", deployment.Status.ReadyReplicas)
 
-			if len(deployment.Status.Conditions) > 0 {
-				condition := deployment.Status.Conditions[0]
-				fmt.Printf("Last status: %v:%v\n", condition.Type, condition.Status)
-				fmt.Printf("Last transition: %v\n", condition.LastTransitionTime)
-			}
+			lastCond := latestCondition(deployment.Status.Conditions)
+			fmt.Printf("Last status: %v:%v at %v\n", lastCond.Type, lastCond.Status, lastCond.LastTransitionTime)
+
 			fmt.Println()
 		}
 
@@ -82,4 +75,15 @@ func homeDir() string {
 		return h
 	}
 	return os.Getenv("USERPROFILE") // windows
+}
+
+func latestCondition(conditions []appsv1.DeploymentCondition) appsv1.DeploymentCondition {
+	max := conditions[0]
+	for _, condition := range conditions {
+		if max.LastTransitionTime.Before(&condition.LastTransitionTime) {
+			max = condition
+		}
+	}
+
+	return max
 }
