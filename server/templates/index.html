@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="Suspends Kubernetes deployments">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Suspenders</title>
+  <!-- <link rel="stylesheet" href="css/styles.css?v=1.0"> -->
+</head>
+
+<body>
+  <p>There are {{len .}} deployments.</p>
+  {{if .}}
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Images</th>
+        <th>Desired</th>
+        <th>Ready</th>
+        <th>Up to Date</th>
+        <th>Created</th>
+        <th>Status</th>
+        <th>Last Transition</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .}}
+      <tr>
+        <td>{{.Name}}</td>
+        <td>{{.Images}}</td>
+        <td>{{.DesiredReplicas}}</td>
+        <td>{{.ReadyReplicas}}</td>
+        <td>{{.UpdatedReplicas}}</td>
+        <td>
+          <time datetime="{{.CreationTimestamp}}" title="{{.CreationTimestamp}}">
+            {{.CreationTimestamp | relative}}
+          </time>
+        </td>
+        <td>{{.Status}}</td>
+        <td>
+          <time datetime="{{.LastTransitionTime}}" title="{{.LastTransitionTime}}">
+            {{.LastTransitionTime | relative}}
+          </time>
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{end}}
+</body>
+
+</html>
