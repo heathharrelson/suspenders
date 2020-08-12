@@ -54,6 +54,9 @@ func NewServer(clientset *kubernetes.Clientset) *Server {
 
 // Run starts the HTTP server
 func (s *Server) Run() error {
+	fs := http.FileServer(http.Dir("server/static"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		deployList, err := s.clientset.AppsV1().Deployments("").List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
