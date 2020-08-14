@@ -16,6 +16,10 @@ all: godeps assets suspenders
 godeps:
 	$(GOMOD) download
 
+.PHONY: devassets
+devassets:
+	npm run build:dev --prefix=server
+
 .PHONY: assets
 assets:
 	npm install --prefix=server
