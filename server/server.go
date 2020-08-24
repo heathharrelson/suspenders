@@ -1,10 +1,25 @@
+/*
+Copyright 2020 Heath Harrelson.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package server
 
 import (
 	"context"
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"sort"
 	"strings"
@@ -13,7 +28,13 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	appsinformers "k8s.io/client-go/informers/apps/v1"
 	"k8s.io/client-go/kubernetes"
+	appslisters "k8s.io/client-go/listers/apps/v1"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog/v2"
 )
 
 var funcs = template.FuncMap{
@@ -35,54 +56,81 @@ type deploymentRow struct {
 
 // Server handles HTTP requests
 type Server struct {
-	clientset *kubernetes.Clientset
-	template  *template.Template
+	clientset          kubernetes.Interface
+	deploymentInformer appsinformers.DeploymentInformer
+	deploymentLister   appslisters.DeploymentLister
+	deploymentsSynced  cache.InformerSynced
+	template           *template.Template
 }
 
 // NewServer creates a new HTTP server
-func NewServer(clientset *kubernetes.Clientset) *Server {
+func NewServer(clientset kubernetes.Interface, deploymentInformer appsinformers.DeploymentInformer) *Server {
 	indexTemplate, err := template.New("index.html").Funcs(funcs).ParseFiles("server/templates/index.html")
 	if err != nil {
 		panic(err)
 	}
 
 	return &Server{
-		clientset: clientset,
-		template:  indexTemplate,
+		clientset:          clientset,
+		deploymentInformer: deploymentInformer,
+		deploymentLister:   deploymentInformer.Lister(),
+		deploymentsSynced:  deploymentInformer.Informer().HasSynced,
+		template:           indexTemplate,
 	}
 }
 
 // Run starts the HTTP server
-func (s *Server) Run() error {
+func (s *Server) Run(stopCh <-chan struct{}) error {
+	defer utilruntime.HandleCrash()
+
+	klog.Info("Starting the web controller")
+
+	klog.Info("Waiting for informer caches to sync")
+	if ok := cache.WaitForCacheSync(stopCh, s.deploymentsSynced); !ok {
+		return fmt.Errorf("failed to wait for caches to sync")
+	}
+
+	srv := http.Server{Addr: ":8080"}
 	fs := http.FileServer(http.Dir("server/static"))
+
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
+	http.HandleFunc("/", s.handleIndex)
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		deployList, err := s.clientset.AppsV1().Deployments("").List(context.TODO(), metav1.ListOptions{})
-		if err != nil {
-			http.Error(w, "Error listing deployments", http.StatusInternalServerError)
-			return
-		}
+	klog.Info("Starting server on port 8080")
+	go func() { srv.ListenAndServe() }()
 
-		rows := deploymentRows(deployList)
-		err = s.template.Execute(w, rows)
-		if err != nil {
-			log.Panic(err)
-		}
-	})
+	<-stopCh
 
-	log.Printf("Serving on port 8080...")
-	return http.ListenAndServe(":8080", nil)
+	klog.Info("Shutting down HTTP server")
+	if err := srv.Shutdown(context.Background()); err != nil {
+		return fmt.Errorf("HTTP server Shutdown: %v", err)
+	}
+
+	return nil
 }
 
-func deploymentRows(dl *appsv1.DeploymentList) []deploymentRow {
-	rows := make([]deploymentRow, len(dl.Items))
+func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
+	deployList, err := s.deploymentLister.List(labels.Everything())
+	if err != nil {
+		http.Error(w, "Error listing deployments", http.StatusInternalServerError)
+		return
+	}
 
-	for i, d := range dl.Items {
+	rows := deploymentRows(deployList)
+	err = s.template.Execute(w, rows)
+	if err != nil {
+		klog.Fatal(err.Error())
+	}
+}
+
+func deploymentRows(dl []*appsv1.Deployment) []deploymentRow {
+	rows := make([]deploymentRow, len(dl))
+
+	for i, d := range dl {
 		lc := latestCondition(d.Status.Conditions)
 		rows[i] = deploymentRow{
 			Name:               fmt.Sprintf("%s/%s", d.Namespace, d.Name),
-			Images:             images(d),
+			Images:             images(*d),
 			DesiredReplicas:    d.Status.Replicas,
 			ReadyReplicas:      d.Status.ReadyReplicas,
 			UpdatedReplicas:    d.Status.UpdatedReplicas,
