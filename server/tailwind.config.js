@@ -2,7 +2,7 @@ const defaultTheme = require('tailwindcss/defaultTheme')
 
 module.exports = {
   purge: [
-    './templates/**/*.html'
+    '../templates/**/*.html'
   ],
   theme: {
     extend: {

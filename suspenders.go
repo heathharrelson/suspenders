@@ -22,7 +22,6 @@ import (
 	"flag"
 	"time"
 
-	"github.com/heathharrelson/suspenders/server"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -58,7 +57,7 @@ func main() {
 
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
 
-	controller := server.NewServer(kubeClient, kubeInformerFactory.Apps().V1().Deployments())
+	controller := NewServer(kubeClient, kubeInformerFactory.Apps().V1().Deployments())
 
 	// notice that there is no need to run Start methods in a separate goroutine. (i.e. go kubeInformerFactory.Start(stopCh)
 	// Start method is non-blocking and runs all registered informers in a dedicated goroutine.

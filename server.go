@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package server
+package main
 
 import (
 	"context"
@@ -65,7 +65,7 @@ type Server struct {
 
 // NewServer creates a new HTTP server
 func NewServer(clientset kubernetes.Interface, deploymentInformer appsinformers.DeploymentInformer) *Server {
-	indexTemplate, err := template.New("index.html").Funcs(funcs).ParseFiles("server/templates/index.html")
+	indexTemplate, err := template.New("index.html").Funcs(funcs).ParseFiles("templates/index.html")
 	if err != nil {
 		panic(err)
 	}
