@@ -10,22 +10,22 @@ GO_VERSION_NUMBER ?= $(word 3, $(GO_VERSION))
 NPM ?= npm
 
 .PHONY: all
-all: godeps assets suspenders
+all: assets suspenders
 
 .PHONY: godeps
-godeps:
+godeps: go.mod go.sum
 	$(GOMOD) download
 
 .PHONY: devassets
 devassets:
-	npm run build:dev --prefix=server
+	npm run build:dev --prefix=ui
 
 .PHONY: assets
 assets:
-	npm install --prefix=server
-	npm run build:prod --prefix=server
+	npm install --prefix=ui
+	npm run build:prod --prefix=ui
 
-suspenders:
+suspenders: godeps suspenders.go server.go
 	$(GOBUILD)
 
 .PHONY: run
@@ -35,8 +35,8 @@ run: assets
 .PHONY: clean
 clean:
 	$(GO) clean
-	rm -rf server/static
+	rm -rf ui/static
 
 .PHONY: superclean
 superclean: clean
-	rm -rf server/node_modules
+	rm -rf ui/node_modules

@@ -91,7 +91,7 @@ func (s *Server) Run(stopCh <-chan struct{}) error {
 	}
 
 	srv := http.Server{Addr: ":8080"}
-	fs := http.FileServer(http.Dir("server/static"))
+	fs := http.FileServer(http.Dir("ui/static"))
 
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 	http.HandleFunc("/", s.handleIndex)
