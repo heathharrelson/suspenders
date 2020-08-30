@@ -1,42 +1,77 @@
-GO         ?= go
-GOMOD      ?= $(GO) mod
-GOBUILD    ?= $(GO) build
-GOHOSTOS   ?= $(shell $(GO) env GOHOSTOS)
-GOHOSTARCH ?= $(shell $(GO) env GOHOSTARCH)
+BIN = suspenders
+OUT_DIR = dist
 
-GO_VERSION        ?= $(shell $(GO) version)
-GO_VERSION_NUMBER ?= $(word 3, $(GO_VERSION))
+GITHUB_URL = github.com/heathharrelson/suspenders
+VERSION ?= $(shell cat VERSION)
+COMMIT ?= $(shell git rev-parse --short HEAD)
+BUILD_DATE ?= $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
-NPM ?= npm
+ALL_ARCH = amd64 arm arm64 ppc64le s390x
+ALL_PLATFORMS = $(addprefix linux/,$(ALL_ARCH))
+ALL_BINARIES ?= $(addprefix $(OUT_DIR)/$(BIN)-, $(addprefix linux-,$(ALL_ARCH)))
 
-.PHONY: all
-all: assets suspenders
+GOOS ?= $(shell uname -s | tr A-Z a-z)
+GOARCH ?= $(shell go env GOARCH)
 
-.PHONY: godeps
+DOCKER_REPO ?= heathharrelson/suspenders
+MANIFEST_BASE_TAG ?= $(DOCKER_REPO):$(VERSION)
+MANIFEST_ARCH_TAGS ?= $(addprefix $(MANIFEST_BASE_TAG)-, $(ALL_ARCH))
+
+all: devassets suspenders
+
 godeps: go.mod go.sum
-	$(GOMOD) download
+	go mod download
 
-.PHONY: devassets
 devassets:
 	npm run build:dev --prefix=ui
 
-.PHONY: assets
 assets:
 	npm install --prefix=ui
 	npm run build:prod --prefix=ui
 
-suspenders: godeps suspenders.go server.go
-	$(GOBUILD)
+$(BIN): godeps suspenders.go server.go
+	go build --installsuffix cgo -o $(BIN) $(GITHUB_URL)
 
-.PHONY: run
-run: assets
-	$(GO) run suspenders.go
+crossbuild: $(ALL_BINARIES)
 
-.PHONY: clean
+$(OUT_DIR)/$(BIN): $(OUT_DIR)/$(BIN)-$(GOOS)-$(GOARCH)
+	cp $(OUT_DIR)/$(BIN)-$(GOOS)-$(GOARCH) $(OUT_DIR)/$(BIN)
+
+$(OUT_DIR)/$(BIN)-%:
+	@echo ">> building $(OUT_DIR)/$(BIN)-$*"
+	GOARCH=$(word 2,$(subst -, ,$(*:.exe=))) \
+	GOOS=$(word 1,$(subst -, ,$(*:.exe=))) \
+	CGO_ENABLED=0 \
+	go build --installsuffix cgo -o $(OUT_DIR)/$(BIN)-$* $(GITHUB_URL)
+
+image: $(OUT_DIR)/$(BIN)-$(GOOS)-$(GOARCH) Dockerfile
+	docker build --build-arg BINARY=$(BIN)-$(GOOS)-$(GOARCH) -t $(DOCKER_REPO):$(VERSION)-$(GOARCH) .
+ifeq ($(GOARCH), amd64)
+	docker tag $(DOCKER_REPO):$(VERSION)-$(GOARCH) $(DOCKER_REPO):$(VERSION)
+endif
+
+image-%:
+	$(MAKE) GOOS=linux GOARCH=$* image
+	docker push $(DOCKER_REPO):$(VERSION)-$*
+
+manifest:
+	DOCKER_CLI_EXPERIMENTAL=enabled \
+	docker manifest create $(MANIFEST_BASE_TAG) $(MANIFEST_ARCH_TAGS)
+
+manifest-%:
+	DOCKER_CLI_EXPERIMENTAL=enabled \
+	docker manifest annotate --arch "$*" "$(DOCKER_REPO):$(VERSION)" "$(DOCKER_REPO):$(VERSION)-$*"
+
+docker: assets crossbuild $(addprefix image-,$(ALL_ARCH)) manifest $(addprefix manifest-,$(ALL_ARCH))
+	DOCKER_CLI_EXPERIMENTAL=enabled \
+	docker manifest push -p "$(DOCKER_REPO):$(VERSION)"
+
 clean:
 	$(GO) clean
+	rm -rf dist
 	rm -rf ui/static
 
-.PHONY: superclean
 superclean: clean
 	rm -rf ui/node_modules
+
+.PHONY: all assets clean crossbuild devassets docker godeps image image-% manifest manifest-% superclean
