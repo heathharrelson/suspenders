@@ -18,6 +18,8 @@ LDFLAGS = \
 	-X $(GITHUB_URL)/buildinfo.BuildDate=$(BUILD_DATE)
 BUILD_FLAGS = --installsuffix cgo -ldflags '$(LDFLAGS)'
 
+NPM_FLAGS = --prefix=ui
+
 DOCKER_REPO ?= heathharrelson/suspenders
 MANIFEST_BASE_TAG ?= $(DOCKER_REPO):$(VERSION)
 MANIFEST_ARCH_TAGS ?= $(addprefix $(MANIFEST_BASE_TAG)-, $(ALL_ARCH))
@@ -27,12 +29,14 @@ all: devassets suspenders
 godeps: go.mod go.sum
 	go mod download
 
-devassets:
-	npm run build:dev --prefix=ui
+jsdeps:
+	npm install $(NPM_FLAGS)
 
-assets:
-	npm install --prefix=ui
-	npm run build:prod --prefix=ui
+devassets: jsdeps
+	npm run build:dev $(NPM_FLAGS)
+
+assets: jsdeps
+	npm run build:prod $(NPM_FLAGS)
 
 $(BIN): godeps suspenders.go server.go
 	go build $(BUILD_FLAGS) -o $(BIN) $(GITHUB_URL)
@@ -79,4 +83,4 @@ clean:
 superclean: clean
 	rm -rf ui/node_modules
 
-.PHONY: all assets clean crossbuild devassets docker godeps image image-% manifest manifest-% superclean
+.PHONY: all assets clean crossbuild devassets docker godeps image image-% manifest manifest-% jsdeps superclean
