@@ -67,7 +67,7 @@ docker: assets crossbuild $(addprefix image-,$(ALL_ARCH)) manifest $(addprefix m
 	docker manifest push -p "$(DOCKER_REPO):$(VERSION)"
 
 clean:
-	$(GO) clean
+	go clean
 	rm -rf dist
 	rm -rf ui/static
 
