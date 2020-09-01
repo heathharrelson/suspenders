@@ -12,6 +12,11 @@ ALL_BINARIES ?= $(addprefix $(OUT_DIR)/$(BIN)-, $(addprefix linux-,$(ALL_ARCH)))
 
 GOOS ?= $(shell uname -s | tr A-Z a-z)
 GOARCH ?= $(shell go env GOARCH)
+LDFLAGS = \
+	-X $(GITHUB_URL)/buildinfo.Version=$(VERSION) \
+	-X $(GITHUB_URL)/buildinfo.Commit=$(COMMIT) \
+	-X $(GITHUB_URL)/buildinfo.BuildDate=$(BUILD_DATE)
+BUILD_FLAGS = --installsuffix cgo -ldflags '$(LDFLAGS)'
 
 DOCKER_REPO ?= heathharrelson/suspenders
 MANIFEST_BASE_TAG ?= $(DOCKER_REPO):$(VERSION)
@@ -30,7 +35,7 @@ assets:
 	npm run build:prod --prefix=ui
 
 $(BIN): godeps suspenders.go server.go
-	go build --installsuffix cgo -o $(BIN) $(GITHUB_URL)
+	go build $(BUILD_FLAGS) -o $(BIN) $(GITHUB_URL)
 
 crossbuild: $(ALL_BINARIES)
 
@@ -42,7 +47,7 @@ $(OUT_DIR)/$(BIN)-%:
 	GOARCH=$(word 2,$(subst -, ,$(*:.exe=))) \
 	GOOS=$(word 1,$(subst -, ,$(*:.exe=))) \
 	CGO_ENABLED=0 \
-	go build --installsuffix cgo -o $(OUT_DIR)/$(BIN)-$* $(GITHUB_URL)
+	go build $(BUILD_FLAGS) -o $(OUT_DIR)/$(BIN)-$* $(GITHUB_URL)
 
 image: $(OUT_DIR)/$(BIN)-$(GOOS)-$(GOARCH) Dockerfile
 	docker build --build-arg BINARY=$(BIN)-$(GOOS)-$(GOARCH) -t $(DOCKER_REPO):$(VERSION)-$(GOARCH) .

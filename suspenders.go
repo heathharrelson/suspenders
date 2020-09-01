@@ -22,6 +22,7 @@ import (
 	"flag"
 	"time"
 
+	"github.com/heathharrelson/suspenders/buildinfo"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -41,6 +42,9 @@ var (
 func main() {
 	klog.InitFlags(nil)
 	flag.Parse()
+
+	klog.Infof("Starting suspenders %s", buildinfo.Version)
+	klog.Infof(buildinfo.Print())
 
 	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := signals.SetupSignalHandler()
