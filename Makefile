@@ -21,6 +21,7 @@ BUILD_FLAGS = --installsuffix cgo -ldflags '$(LDFLAGS)'
 NPM_FLAGS = --prefix=ui
 
 DOCKER_REPO ?= heathharrelson/suspenders
+DOCKERHUB_URL ?= https://hub.docker.com/r/heathharrelson/suspenders
 MANIFEST_BASE_TAG ?= $(DOCKER_REPO):$(VERSION)
 MANIFEST_ARCH_TAGS ?= $(addprefix $(MANIFEST_BASE_TAG)-, $(ALL_ARCH))
 
@@ -54,7 +55,16 @@ $(OUT_DIR)/$(BIN)-%:
 	go build $(BUILD_FLAGS) -o $(OUT_DIR)/$(BIN)-$* $(GITHUB_URL)
 
 image: $(OUT_DIR)/$(BIN)-$(GOOS)-$(GOARCH) Dockerfile
-	docker build --build-arg BINARY=$(BIN)-$(GOOS)-$(GOARCH) -t $(DOCKER_REPO):$(VERSION)-$(GOARCH) .
+	docker build \
+		--build-arg BINARY=$(BIN)-$(GOOS)-$(GOARCH) \
+		--label "org.opencontainers.image.created=$(BUILD_DATE)" \
+		--label "org.opencontainers.image.url=$(DOCKERHUB_URL)" \
+		--label "org.opencontainers.image.source=https://$(GITHUB_URL)" \
+		--label "org.opencontainers.image.version=$(VERSION)" \
+		--label "org.opencontainers.image.revision=$(COMMIT)" \
+		--label "org.opencontainers.image.licences=Apache-2.0" \
+		-t $(DOCKER_REPO):$(VERSION)-$(GOARCH) \
+		.
 ifeq ($(GOARCH), amd64)
 	docker tag $(DOCKER_REPO):$(VERSION)-$(GOARCH) $(DOCKER_REPO):$(VERSION)
 endif
