@@ -94,6 +94,7 @@ func (s *Server) Run(stopCh <-chan struct{}) error {
 	fs := http.FileServer(http.Dir("ui/static"))
 
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
+	http.HandleFunc("/healthz", s.handleHealthCheck)
 	http.HandleFunc("/", s.handleIndex)
 
 	klog.Info("Starting server on port 8080")
@@ -121,6 +122,10 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		klog.Fatal(err.Error())
 	}
+}
+
+func (s *Server) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, "ok")
 }
 
 func deploymentRows(dl []*appsv1.Deployment) []deploymentRow {
