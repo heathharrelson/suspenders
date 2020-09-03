@@ -1,0 +1,97 @@
+# Installs suspenders with the ability to see all
+# deployments, replica sets, and pods cluster-wide.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: default
+  name: suspenders-controller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: suspenders-controller
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - replicasets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: suspenders-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: suspenders-controller
+subjects:
+- kind: ServiceAccount
+  namespace: default
+  name: suspenders-controller
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: suspenders
+spec:
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/name: suspenders
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: suspenders
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: suspenders
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: suspenders
+    spec:
+      containers:
+      - name: suspenders
+        command: [ /suspenders ]
+        image: heathharrelson/suspenders:0.1.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        # livenessProbe:
+        #   httpGet:
+        #     path: /healthz
+        #     port: 8080
+        #   initialDelaySeconds: 5
+        #   periodSeconds: 10
+        # readinessProbe:
+        #   httpGet:
+        #     path: /healthz
+        #     port: 8082
+        #   initialDelaySeconds: 5
+        #   periodSeconds: 10
+      serviceAccountName: suspenders-controller
