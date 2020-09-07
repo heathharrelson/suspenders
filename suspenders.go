@@ -20,6 +20,7 @@ package main
 
 import (
 	"flag"
+	"net/url"
 	"time"
 
 	"github.com/heathharrelson/suspenders/buildinfo"
@@ -35,8 +36,9 @@ import (
 )
 
 var (
-	masterURL  string
-	kubeconfig string
+	externalURL string
+	masterURL   string
+	kubeconfig  string
 )
 
 func main() {
@@ -61,7 +63,12 @@ func main() {
 
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
 
-	controller := NewServer(kubeClient, kubeInformerFactory.Apps().V1().Deployments())
+	extURL, err := url.Parse(externalURL)
+	if err != nil {
+		klog.Fatalf("Could not parse external URL: %s", err.Error())
+	}
+
+	controller := NewServer(kubeClient, kubeInformerFactory.Apps().V1().Deployments(), extURL)
 
 	// notice that there is no need to run Start methods in a separate goroutine. (i.e. go kubeInformerFactory.Start(stopCh)
 	// Start method is non-blocking and runs all registered informers in a dedicated goroutine.
@@ -75,4 +82,5 @@ func main() {
 func init() {
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
+	flag.StringVar(&externalURL, "external-url", "", "The URL at which the dashboard will be reachable (e.g. when behind a reverse proxy or ingress). Used to generate links to assets.")
 }

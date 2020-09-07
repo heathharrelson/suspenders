@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 
@@ -60,11 +61,12 @@ type Server struct {
 	deploymentInformer appsinformers.DeploymentInformer
 	deploymentLister   appslisters.DeploymentLister
 	deploymentsSynced  cache.InformerSynced
+	externalURL        *url.URL
 	template           *template.Template
 }
 
 // NewServer creates a new HTTP server
-func NewServer(clientset kubernetes.Interface, deploymentInformer appsinformers.DeploymentInformer) *Server {
+func NewServer(clientset kubernetes.Interface, deploymentInformer appsinformers.DeploymentInformer, externalURL *url.URL) *Server {
 	indexTemplate, err := template.New("index.html").Funcs(funcs).ParseFiles("templates/index.html")
 	if err != nil {
 		panic(err)
@@ -75,6 +77,7 @@ func NewServer(clientset kubernetes.Interface, deploymentInformer appsinformers.
 		deploymentInformer: deploymentInformer,
 		deploymentLister:   deploymentInformer.Lister(),
 		deploymentsSynced:  deploymentInformer.Informer().HasSynced,
+		externalURL:        externalURL,
 		template:           indexTemplate,
 	}
 }
@@ -91,13 +94,18 @@ func (s *Server) Run(stopCh <-chan struct{}) error {
 	}
 
 	srv := http.Server{Addr: ":8080"}
-	fs := http.FileServer(http.Dir("ui/static"))
 
-	http.Handle("/static/", http.StripPrefix("/static/", fs))
+	assetPath := s.contextPath() + "/static/"
+	fs := http.FileServer(http.Dir("ui/static"))
+	http.Handle(assetPath, http.StripPrefix(assetPath, fs))
+
+	indexPath := s.contextPath() + "/"
+	http.HandleFunc(indexPath, s.handleIndex)
+
 	http.HandleFunc("/healthz", s.handleHealthCheck)
-	http.HandleFunc("/", s.handleIndex)
 
 	klog.Info("Starting server on port 8080")
+	klog.Info("External URL:", s.externalURL)
 	go func() { srv.ListenAndServe() }()
 
 	<-stopCh
@@ -110,6 +118,10 @@ func (s *Server) Run(stopCh <-chan struct{}) error {
 	return nil
 }
 
+func (s *Server) contextPath() string {
+	return strings.TrimRight(s.externalURL.Path, "/")
+}
+
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	deployList, err := s.deploymentLister.List(labels.Everything())
 	if err != nil {
@@ -117,8 +129,11 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows := deploymentRows(deployList)
-	err = s.template.Execute(w, rows)
+	templateData := make(map[string]interface{})
+	templateData["contextPath"] = s.contextPath()
+	templateData["deploymentRows"] = deploymentRows(deployList)
+
+	err = s.template.Execute(w, templateData)
 	if err != nil {
 		klog.Fatal(err.Error())
 	}

@@ -8,7 +8,7 @@
 
   <title>Suspenders</title>
   <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
-  <link rel="stylesheet" href="/static/main.css?v=1.0">
+  <link rel="stylesheet" href="{{.contextPath}}/static/main.css?v=1.0">
 </head>
 
 <body class="h-screen bg-gray-100">
@@ -25,7 +25,7 @@
   <main>
     <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
       <div class="py-6 sm:px-0">
-        {{if .}}
+        {{if .deploymentRows}}
         <table class="w-full text-left table-collapse">
           <thead>
             <tr>
@@ -40,7 +40,7 @@
             </tr>
           </thead>
           <tbody>
-            {{range .}}
+            {{range .deploymentRows}}
             <tr>
               <td class="text-sm">{{.Name}}</td>
               <td class="text-sm">{{.Images}}</td>
