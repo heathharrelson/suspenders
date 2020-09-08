@@ -16,7 +16,6 @@ LDFLAGS = \
 	-X $(GITHUB_URL)/buildinfo.Version=$(VERSION) \
 	-X $(GITHUB_URL)/buildinfo.Commit=$(COMMIT) \
 	-X $(GITHUB_URL)/buildinfo.BuildDate=$(BUILD_DATE)
-BUILD_FLAGS = --installsuffix cgo -ldflags '$(LDFLAGS)'
 
 NPM_FLAGS = --prefix=ui
 
@@ -40,7 +39,7 @@ assets: jsdeps
 	npm run build:prod $(NPM_FLAGS)
 
 $(BIN): godeps suspenders.go server.go
-	go build $(BUILD_FLAGS) -o $(BIN) $(GITHUB_URL)
+	go build -ldflags '$(LDFLAGS)' -o $(BIN) $(GITHUB_URL)
 
 crossbuild: $(ALL_BINARIES)
 
@@ -52,7 +51,7 @@ $(OUT_DIR)/$(BIN)-%:
 	GOARCH=$(word 2,$(subst -, ,$(*:.exe=))) \
 	GOOS=$(word 1,$(subst -, ,$(*:.exe=))) \
 	CGO_ENABLED=0 \
-	go build $(BUILD_FLAGS) -o $(OUT_DIR)/$(BIN)-$* $(GITHUB_URL)
+	go build -ldflags '$(LDFLAGS)' -o $(OUT_DIR)/$(BIN)-$* $(GITHUB_URL)
 
 image: $(OUT_DIR)/$(BIN)-$(GOOS)-$(GOARCH) Dockerfile
 	docker build \
