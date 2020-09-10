@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -93,11 +94,12 @@ func (s *Server) Run(stopCh <-chan struct{}) error {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
-	srv := http.Server{Addr: ":8080"}
-
 	assetPath := s.contextPath() + "/static/"
 	fs := http.FileServer(http.Dir("ui/static"))
 	http.Handle(assetPath, http.StripPrefix(assetPath, fs))
+
+	apiPath := s.contextPath() + "/api/v1"
+	http.HandleFunc(apiPath+"/deployments", s.handleListDeployments)
 
 	indexPath := s.contextPath() + "/"
 	http.HandleFunc(indexPath, s.handleIndex)
@@ -106,6 +108,8 @@ func (s *Server) Run(stopCh <-chan struct{}) error {
 
 	klog.Info("Starting server on port 8080")
 	klog.Info("External URL:", s.externalURL)
+
+	srv := http.Server{Addr: ":8080"}
 	go func() { srv.ListenAndServe() }()
 
 	<-stopCh
@@ -141,6 +145,17 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "ok")
+}
+
+func (s *Server) handleListDeployments(w http.ResponseWriter, r *http.Request) {
+	deployList, err := s.deploymentLister.List(labels.Everything())
+	if err != nil {
+		http.Error(w, "Error listing deployments", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(deployList)
 }
 
 func deploymentRows(dl []*appsv1.Deployment) []deploymentRow {
