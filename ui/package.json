@@ -21,7 +21,7 @@
     "postcss-cli": "^7.1.2"
   },
   "dependencies": {
-    "@tailwindcss/ui": "^0.6.0",
+    "@tailwindcss/ui": "^0.6.2",
     "tailwindcss": "^1.8.10"
   }
 }
