@@ -23,38 +23,19 @@ import (
 	"html/template"
 	"net/http"
 	"net/url"
-	"sort"
 	"strings"
+	"time"
 
-	humanize "github.com/dustin/go-humanize"
+	"github.com/gorilla/mux"
 
-	appsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	appsinformers "k8s.io/client-go/informers/apps/v1"
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/klog/v2"
+	klog "k8s.io/klog/v2"
 )
-
-var funcs = template.FuncMap{
-	"relative": func(t metav1.Time) string {
-		return humanize.Time(t.Time)
-	},
-}
-
-type deploymentRow struct {
-	Name               string
-	Images             string
-	DesiredReplicas    int32
-	ReadyReplicas      int32
-	UpdatedReplicas    int32
-	CreationTimestamp  metav1.Time
-	LastTransitionTime metav1.Time
-	Status             string
-}
 
 // Server handles HTTP requests
 type Server struct {
@@ -68,7 +49,7 @@ type Server struct {
 
 // NewServer creates a new HTTP server
 func NewServer(clientset kubernetes.Interface, deploymentInformer appsinformers.DeploymentInformer, externalURL *url.URL) *Server {
-	indexTemplate, err := template.New("index.html").Funcs(funcs).ParseFiles("templates/index.html")
+	indexTemplate, err := template.New("index.html").ParseFiles("ui/dist/index.html")
 	if err != nil {
 		panic(err)
 	}
@@ -94,22 +75,35 @@ func (s *Server) Run(stopCh <-chan struct{}) error {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
-	assetPath := s.contextPath() + "/static/"
-	fs := http.FileServer(http.Dir("ui/static"))
-	http.Handle(assetPath, http.StripPrefix(assetPath, fs))
+	router := mux.NewRouter()
+	pathPrefix := s.contextPath()
 
-	apiPath := s.contextPath() + "/api/v1"
-	http.HandleFunc(apiPath+"/deployments", s.handleListDeployments)
+	router.HandleFunc("/healthz", s.handleHealth)
 
-	indexPath := s.contextPath() + "/"
-	http.HandleFunc(indexPath, s.handleIndex)
+	appRouter := router
+	if pathPrefix != "" {
+		appRouter = router.PathPrefix(pathPrefix).Subrouter()
+	}
 
-	http.HandleFunc("/healthz", s.handleHealthCheck)
+	appRouter.HandleFunc("/api/v1/deployments", s.handleListDeployments).Methods("GET")
+
+	fs := http.FileServer(http.Dir("ui/dist"))
+	assetPaths := []string{"/css/", "/js/", "/img/"}
+	for _, path := range assetPaths {
+		appRouter.PathPrefix(path).Handler(http.StripPrefix(pathPrefix, fs))
+	}
+
+	appRouter.PathPrefix("/").Handler(http.HandlerFunc(s.handleIndex))
 
 	klog.Info("Starting server on port 8080")
 	klog.Info("External URL:", s.externalURL)
 
-	srv := http.Server{Addr: ":8080"}
+	srv := http.Server{
+		Addr:         ":8080",
+		Handler:      router,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+	}
 	go func() { srv.ListenAndServe() }()
 
 	<-stopCh
@@ -127,23 +121,16 @@ func (s *Server) contextPath() string {
 }
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
-	deployList, err := s.deploymentLister.List(labels.Everything())
-	if err != nil {
-		http.Error(w, "Error listing deployments", http.StatusInternalServerError)
-		return
-	}
-
 	templateData := make(map[string]interface{})
 	templateData["contextPath"] = s.contextPath()
-	templateData["deploymentRows"] = deploymentRows(deployList)
 
-	err = s.template.Execute(w, templateData)
+	err := s.template.Execute(w, templateData)
 	if err != nil {
 		klog.Fatal(err.Error())
 	}
 }
 
-func (s *Server) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "ok")
 }
 
@@ -156,49 +143,4 @@ func (s *Server) handleListDeployments(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(deployList)
-}
-
-func deploymentRows(dl []*appsv1.Deployment) []deploymentRow {
-	rows := make([]deploymentRow, len(dl))
-
-	for i, d := range dl {
-		lc := latestCondition(d.Status.Conditions)
-		rows[i] = deploymentRow{
-			Name:               fmt.Sprintf("%s/%s", d.Namespace, d.Name),
-			Images:             images(*d),
-			DesiredReplicas:    d.Status.Replicas,
-			ReadyReplicas:      d.Status.ReadyReplicas,
-			UpdatedReplicas:    d.Status.UpdatedReplicas,
-			CreationTimestamp:  d.CreationTimestamp,
-			LastTransitionTime: lc.LastTransitionTime,
-			Status:             fmt.Sprintf("%s:%s", lc.Type, lc.Status),
-		}
-	}
-
-	sort.Slice(rows, func(i, j int) bool {
-		return rows[i].LastTransitionTime.Before(&rows[j].LastTransitionTime)
-	})
-
-	return rows
-}
-
-func images(d appsv1.Deployment) string {
-	var s []string
-
-	for _, c := range d.Spec.Template.Spec.Containers {
-		s = append(s, c.Image)
-	}
-
-	return strings.Join(s, ", ")
-}
-
-func latestCondition(conditions []appsv1.DeploymentCondition) appsv1.DeploymentCondition {
-	max := conditions[0]
-	for _, condition := range conditions {
-		if max.LastTransitionTime.Before(&condition.LastTransitionTime) {
-			max = condition
-		}
-	}
-
-	return max
 }

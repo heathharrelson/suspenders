@@ -1,4 +1,4 @@
 *
 !dist/
 !templates/
-!ui/static/
+!ui/dist/

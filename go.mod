@@ -3,8 +3,7 @@ module github.com/heathharrelson/suspenders
 go 1.13
 
 require (
-	github.com/dustin/go-humanize v1.0.0
-	k8s.io/api v0.19.2
+	github.com/gorilla/mux v1.8.0
 	k8s.io/apimachinery v0.19.2
 	k8s.io/client-go v0.19.2
 	k8s.io/klog/v2 v2.3.0

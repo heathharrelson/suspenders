@@ -24,7 +24,7 @@ DOCKERHUB_URL ?= https://hub.docker.com/r/heathharrelson/suspenders
 MANIFEST_BASE_TAG ?= $(DOCKER_REPO):$(VERSION)
 MANIFEST_ARCH_TAGS ?= $(addprefix $(MANIFEST_BASE_TAG)-, $(ALL_ARCH))
 
-all: devassets suspenders
+all: assets suspenders
 
 godeps: go.mod go.sum
 	go mod download
@@ -36,7 +36,7 @@ devassets: jsdeps
 	npm run build:dev $(NPM_FLAGS)
 
 assets: jsdeps
-	npm run build:prod $(NPM_FLAGS)
+	npm run build $(NPM_FLAGS)
 
 $(BIN): godeps suspenders.go server.go
 	go build -ldflags '$(LDFLAGS)' -o $(BIN) $(GITHUB_URL)
@@ -87,6 +87,7 @@ docker: assets crossbuild $(addprefix image-,$(ALL_ARCH)) manifest $(addprefix m
 clean:
 	go clean
 	rm -rf dist
+	rm -rf ui/dist
 	rm -rf ui/static
 
 superclean: clean

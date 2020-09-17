@@ -2,8 +2,7 @@ FROM gcr.io/distroless/static
 
 ARG BINARY=suspenders-linux-amd64
 COPY dist/${BINARY} /suspenders
-COPY templates /templates
-COPY ui/static /ui/static
+COPY ui/dist /ui/dist
 
 EXPOSE 8080
 USER nobody

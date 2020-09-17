@@ -1,27 +1,64 @@
 {
   "name": "suspenders",
   "version": "0.1.0",
+  "private": true,
   "description": "A tool for supending and resuming Kubernetes deployments.",
-  "main": "index.js",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/heathharrelson/suspenders.git"
+  "author": {
+    "name": "Heath Harrelson",
+    "email": "heath.harrelson@gmail.com"
   },
   "scripts": {
-    "build:dev": "cross-env NODE_ENV=development postcss assets/main.css -o static/main.css",
-    "build:prod": "cross-env NODE_ENV=production postcss assets/main.css -o static/main.css",
-    "clean": "rm -rf static"
+    "build": "vue-cli-service build",
+    "build:dev": "vue-cli-service build --mode=development",
+    "clean": "rm -rf dist",
+    "lint": "vue-cli-service lint",
+    "serve": "vue-cli-service serve",
+    "test": "vue-cli-service test:unit"
   },
-  "author": "Heath Harrelson <heath.harrelson@gmail.com>",
-  "license": "MIT",
-  "devDependencies": {
-    "autoprefixer": "^10.0.0",
-    "cross-env": "^7.0.2",
-    "postcss": "^8.0.6",
-    "postcss-cli": "^8.0.0"
-  },
+  "main": "index.js",
   "dependencies": {
-    "@tailwindcss/ui": "^0.6.2",
-    "tailwindcss": "^1.8.10"
+    "@tailwindcss/ui": "^0.6.0",
+    "core-js": "^3.6.5",
+    "date-fns": "^2.16.1",
+    "tailwindcss": "^1.8.7",
+    "vue": "^3.0.0-0",
+    "vue-router": "^4.0.0-0"
+  },
+  "devDependencies": {
+    "@types/jest": "^24.0.19",
+    "@typescript-eslint/eslint-plugin": "^2.33.0",
+    "@typescript-eslint/parser": "^2.33.0",
+    "@vue/cli-plugin-babel": "~4.5.0",
+    "@vue/cli-plugin-eslint": "~4.5.0",
+    "@vue/cli-plugin-router": "~4.5.0",
+    "@vue/cli-plugin-typescript": "~4.5.0",
+    "@vue/cli-plugin-unit-jest": "~4.5.0",
+    "@vue/cli-service": "~4.5.0",
+    "@vue/compiler-sfc": "^3.0.0-0",
+    "@vue/eslint-config-prettier": "^6.0.0",
+    "@vue/eslint-config-typescript": "^5.0.2",
+    "@vue/test-utils": "^2.0.0-0",
+    "autoprefixer": "^9.8.6",
+    "cross-env": "^7.0.2",
+    "eslint": "^6.7.2",
+    "eslint-plugin-prettier": "^3.1.3",
+    "eslint-plugin-vue": "^7.0.0-0",
+    "postcss": "^7.0.32",
+    "postcss-cli": "^7.1.2",
+    "prettier": "^1.19.1",
+    "typescript": "~3.9.3",
+    "vue-jest": "^5.0.0-0",
+    "whatwg-fetch": "^3.4.1"
+  },
+  "_id": "suspenders@0.1.0",
+  "bugs": {
+    "url": "https://github.com/heathharrelson/suspenders/issues"
+  },
+  "homepage": "https://github.com/heathharrelson/suspenders#readme",
+  "license": "Apache-2.0",
+  "readme": "ERROR: No README data found!",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/heathharrelson/suspenders.git"
   }
 }
