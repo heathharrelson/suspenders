@@ -18,7 +18,7 @@
     "autoprefixer": "^9.8.6",
     "cross-env": "^7.0.2",
     "postcss": "^8.0.6",
-    "postcss-cli": "^7.1.2"
+    "postcss-cli": "^8.0.0"
   },
   "dependencies": {
     "@tailwindcss/ui": "^0.6.2",
