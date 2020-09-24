@@ -78,7 +78,7 @@ spec:
       containers:
       - name: suspenders
         command: [ /suspenders ]
-        image: heathharrelson/suspenders:0.3.0
+        image: heathharrelson/suspenders:0.4.0
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
