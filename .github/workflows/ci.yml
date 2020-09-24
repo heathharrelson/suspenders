@@ -30,6 +30,9 @@ jobs:
     - name: Build
       run: make
 
-    # TODO tests
+    - name: Test JS
+      run: npm test --prefix=ui
+
+    # TODO: Go tests
     #- name: Test
     #  run: go test -v .
