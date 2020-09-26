@@ -1,6 +1,7 @@
 /**
- * Extracts the application's context path from the <meta> tag if present. If missing
- * or unset, the root context "/" is assumed.
+ * Extracts the application's context path from the <meta> tag if present. The path will
+ * be normalized by removing any trailing slash. If the context path is missing or unset,
+ * the root context "/" is assumed.
  */
 export function getContextPath(): string {
   const defaultContext = '/'
@@ -10,7 +11,12 @@ export function getContextPath(): string {
     return defaultContext
   }
 
-  return contextTag.getAttribute('content') || defaultContext
+  let contextPath = contextTag.getAttribute('content')
+  if (contextPath && contextPath.endsWith('/')) {
+    contextPath = contextPath.slice(0, -1)
+  }
+
+  return contextPath || defaultContext
 }
 
 /**
