@@ -18,13 +18,6 @@
               >
                 Deployments
               </router-link>
-              <router-link
-                to="/about"
-                class="px-3 py-2 rounded-md text-sm font-medium leading-5 text-gray-300 focus:outline-none focus:text-white focus:bg-gray-700 transition duration-150 ease-in-out"
-                active-class="text-white bg-gray-900"
-              >
-                About
-              </router-link>
             </div>
           </div>
         </div>
