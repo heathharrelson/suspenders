@@ -38,7 +38,7 @@ export default {
   },
 
   setup(props) {
-    const formatRelative = timestamp => {
+    const formatRelative = (timestamp) => {
       const d = new Date(timestamp)
       return formatDistanceToNow(d, { addSuffix: true })
     }
