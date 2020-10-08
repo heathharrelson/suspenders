@@ -45,7 +45,7 @@
     "eslint-plugin-vue": "^7.0.1",
     "postcss": "^7.0.32",
     "postcss-cli": "^7.1.2",
-    "prettier": "^1.19.1",
+    "prettier": "^2.1.2",
     "typescript": "~3.9.3",
     "vue-jest": "^5.0.0-alpha.4",
     "whatwg-fetch": "^3.4.1"
