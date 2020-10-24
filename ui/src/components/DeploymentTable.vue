@@ -34,6 +34,8 @@ export default {
   },
 
   setup() {
+    // TODO: proper type annotation
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const deploymentKey = (deployment: any) => {
       return `${deployment.metadata.namespace}${deployment.metadata.name}`
     }
