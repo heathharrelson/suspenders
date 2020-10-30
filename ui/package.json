@@ -20,7 +20,7 @@
     "@tailwindcss/ui": "^0.6.2",
     "core-js": "^3.6.5",
     "date-fns": "^2.16.1",
-    "tailwindcss": "^1.9.5",
+    "tailwindcss": "^1.9.6",
     "vue": "^3.0.2",
     "vue-router": "^4.0.0-rc.1"
   },
