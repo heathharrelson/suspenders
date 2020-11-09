@@ -45,7 +45,7 @@
     "prettier": "^2.1.2",
     "typescript": "~3.9.3",
     "vue-jest": "^5.0.0-alpha.5",
-    "whatwg-fetch": "^3.4.1"
+    "whatwg-fetch": "^3.5.0"
   },
   "_id": "suspenders@0.1.0",
   "bugs": {
