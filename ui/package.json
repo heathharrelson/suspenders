@@ -18,7 +18,7 @@
   "main": "index.js",
   "dependencies": {
     "@tailwindcss/ui": "^0.7.2",
-    "core-js": "^3.6.5",
+    "core-js": "^3.7.0",
     "date-fns": "^2.16.1",
     "tailwindcss": "^1.9.6",
     "vue": "^3.0.2",
