@@ -6,6 +6,6 @@ require (
 	github.com/gorilla/mux v1.8.0
 	k8s.io/apimachinery v0.20.4
 	k8s.io/client-go v0.20.4
-	k8s.io/klog/v2 v2.5.0
+	k8s.io/klog/v2 v2.6.0
 	k8s.io/sample-controller v0.20.4
 )
