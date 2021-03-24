@@ -1,4 +1,8 @@
-*
-!dist/
-!templates/
-!ui/dist/
+.git/
+.github/
+.gitignore
+*.md
+Dockerfile
+manifests/
+ui/dist/
+ui/node_modules/
