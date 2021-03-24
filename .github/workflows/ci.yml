@@ -2,37 +2,34 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
-
   build:
     name: Build
     runs-on: ubuntu-latest
     steps:
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.15
+        id: go
 
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: ^1.15
-      id: go
+      - name: Set up Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: "14"
 
-    - name: Set up Node
-      uses: actions/setup-node@v1
-      with:
-        node-version: 12.x
+      - name: Check out code
+        uses: actions/checkout@v2
 
-    - name: Check out code
-      uses: actions/checkout@v2
+      - name: Build
+        run: make
 
-    - name: Build
-      run: make
-
-    - name: Test JS
-      run: npm test --prefix=ui
-
+      - name: Test JS
+        run: npm test --prefix=ui
     # TODO: Go tests
     #- name: Test
     #  run: go test -v .
