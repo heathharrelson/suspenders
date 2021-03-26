@@ -12,7 +12,7 @@ RUN mkdir /build
 WORKDIR /build
 COPY . .
 RUN apk update && \
-  apk add --no-cache build-base && \
+  apk add --no-cache build-base git && \
   make suspenders
 
 FROM alpine:${ALPINE_VERSION}
